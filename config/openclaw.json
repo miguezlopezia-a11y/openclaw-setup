@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.14",
+    "lastTouchedAt": "2026-03-19T12:00:00.000Z"
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-haiku-4-5-20251001",
+        "fallbacks": [
+          "anthropic/claude-sonnet-4-20250514"
+        ]
+      },
+      "models": {
+        "anthropic/claude-sonnet-4-20250514": {}
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "humanDelay": {
+        "mode": "custom",
+        "minMs": 1500,
+        "maxMs": 4000
+      },
+      "maxConcurrent": 1,
+      "subagents": {
+        "maxConcurrent": 1
+      }
+    }
+  },
+  "tools": {},
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "handlers": [
+        {
+          "event": "before_agent_start",
+          "module": "hooks/model-router.mjs"
+        }
+      ]
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "allowFrom": [
+        1653734374
+      ],
+      "groupPolicy": "open",
+      "streaming": "partial"
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789",
+        "http://204.168.163.167:18789",
+        "https://204.168.163.167"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
+  }
+}
