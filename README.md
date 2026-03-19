@@ -306,3 +306,45 @@ claude
 
 ---
 *Documentación generada automáticamente. Última actualización: 2026-03-19*
+
+## SearXNG — Motor de búsqueda interno
+
+SearXNG es un metabuscador de código abierto instalado localmente, accesible por MaiA sin exponer tráfico a servicios externos de logging.
+
+### Acceso
+- **Interno (Docker):** `http://searxng:8080` (solo desde la red Docker)
+- **Host:** `http://127.0.0.1:8080` (solo local, no público)
+
+### Motores configurados
+Google, Bing, DuckDuckGo, Wikipedia, GitHub, StackOverflow, arXiv, Google News
+
+### Uso desde MaiA
+```bash
+# Búsqueda general
+curl -sf "http://searxng:8080/search?q=TU+CONSULTA&format=json" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for r in data.get('results', [])[:5]:
+    print(f\"Title: {r.get('title','')}")
+    print(f\"URL:   {r.get('url','')}")
+    print(f\"Desc:  {r.get('content','')[:200]}")
+    print()
+"
+
+# Noticias
+curl -sf "http://searxng:8080/search?q=TEMA&format=json&categories=news"
+
+# Tech/código
+curl -sf "http://searxng:8080/search?q=PREGUNTA&format=json&categories=it"
+```
+
+### Configuración
+- Archivo: `/opt/searxng/settings.yml`
+- Idioma por defecto: español
+- Rate limiting: desactivado (uso interno)
+- Sin logs de búsqueda
+
+### Docker
+Definido en `/opt/moltbot/docker-compose.yml` como servicio `searxng`.
+Reinicia automáticamente. Monitorizado por `watchdog.sh`.
+
