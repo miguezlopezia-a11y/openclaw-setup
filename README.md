@@ -348,3 +348,46 @@ curl -sf "http://searxng:8080/search?q=PREGUNTA&format=json&categories=it"
 Definido en `/opt/moltbot/docker-compose.yml` como servicio `searxng`.
 Reinicia automáticamente. Monitorizado por `watchdog.sh`.
 
+## Google Drive — Leer documentos
+
+MaiA puede leer documentos de Google Drive (incluyendo contenido de NotebookLM) usando el skill `gdrive`.
+
+### Autenticación: Service Account
+
+Usa un Service Account de Google Cloud — no requiere OAuth interactivo, ideal para servidor headless.
+
+### Setup (una vez)
+
+1. Ve a [console.cloud.google.com](https://console.cloud.google.com)
+2. Crea proyecto nuevo: **"MaiA Drive"**
+3. APIs y servicios → Habilitar APIs:
+   - Google Drive API
+   - Google Docs API
+4. IAM → Cuentas de servicio → Crear cuenta (`maia-drive-reader`)
+5. En la cuenta creada → Claves → Agregar clave → JSON → Descargar
+6. Copiar JSON al servidor:
+   ```
+   scp credentials.json root@204.168.163.167:/root/.openclaw/gdrive/credentials.json
+   ssh root@204.168.163.167 chown 1000:1000 /root/.openclaw/gdrive/credentials.json
+   ```
+7. Compartir documentos/carpetas de Drive con el email del Service Account (Lector)
+
+### Verificar
+
+```bash
+docker exec moltbot-openclaw-gateway-1 node /home/node/.openclaw/gdrive/gdrive.mjs setup
+```
+
+### Comandos disponibles para MaiA
+
+```bash
+node /home/node/.openclaw/gdrive/gdrive.mjs list               # listar archivos
+node /home/node/.openclaw/gdrive/gdrive.mjs read <fileId>      # leer documento
+node /home/node/.openclaw/gdrive/gdrive.mjs search <query>     # buscar
+node /home/node/.openclaw/gdrive/gdrive.mjs info <fileId>      # metadatos
+```
+
+### gog (Google Workspace completo — Gmail, Calendar, Drive, Docs, Sheets)
+
+Binario instalado en `/home/node/.openclaw/bin/gog` (v0.12.0).
+Requiere OAuth setup con `client_secret.json` de Google Cloud Console.
