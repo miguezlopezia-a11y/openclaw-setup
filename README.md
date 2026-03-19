@@ -1,141 +1,115 @@
-# OpenClaw Setup
+# MaiA — OpenClaw/Moltbot Setup Completo
 
-Scripts y hooks para instalar y configurar [OpenClaw](https://github.com/moltbot/moltbot) (MaiA) con Docker en Ubuntu 24.04.
+> **MaiA** es un asistente de IA personal desplegado en un servidor Hetzner,
+> accesible via Telegram y navegador web, potenciado por Claude (Anthropic).
 
 ## Servidor
 
 | Campo | Valor |
-|---|---|
+|-------|-------|
 | IP | `204.168.163.167` |
-| Usuario | `root` |
 | OS | Ubuntu 24.04 |
-| Panel | Hetzner Cloud |
+| RAM | 7.6 GB |
+| Disco | 150 GB |
+| Swap | 2 GB (añadido para estabilidad) |
+| Usuario | `root` |
 
----
+## Arquitectura
 
-## Instalación
+```
+Usuario Telegram
+       │
+       ▼
+api.telegram.org
+       │ polling
+       ▼
+┌─────────────────────────────────┐
+│  Servidor Hetzner 204.168.163.167│
+│                                 │
+│  ┌──────────────┐               │
+│  │ nginx:443/80 │  ← HTTPS      │
+│  └──────┬───────┘               │
+│         │ proxy_pass            │
+│  ┌──────▼──────────────────┐    │
+│  │ openclaw-gateway:18789  │    │
+│  │  ├── model-router hook  │    │
+│  │  ├── Telegram plugin    │    │
+│  │  └── Claude API client  │    │
+│  └─────────────────────────┘    │
+│                                 │
+│  ┌──────────────────────────┐   │
+│  │ n8n + PostgreSQL         │   │
+│  └──────────────────────────┘   │
+└─────────────────────────────────┘
+```
 
-### Requisitos locales
+## Acceso Web
 
-- Python 3.x
-- `pip install paramiko`
+- HTTPS: `https://204.168.163.167` (certificado autofirmado — acepta la advertencia)
+- HTTP redirige automáticamente a HTTPS
 
-### Ejecutar
+## Instalación inicial
 
 ```bash
+pip install paramiko
 python install_openclaw.py
 ```
 
-El script conecta al servidor por SSH, pide la contraseña de forma segura y ejecuta automáticamente:
+El script instala Docker, clona OpenClaw/Moltbot y lo arranca. Ver `install_openclaw.py`.
 
-1. `apt-get update && upgrade`
-2. Instalación de Docker Engine + Compose
-3. Habilitación de Docker al inicio
-4. Clonado del repositorio OpenClaw en `/opt/moltbot`
-5. Apertura del puerto 18789 en UFW
-6. Ejecución de `docker-setup.sh` (modo non-interactive)
+## Configuración
 
----
+### Variables de entorno (`/opt/moltbot/.env`)
 
-## Acceso a la interfaz web
-
-La interfaz está disponible en **HTTPS** gracias a un nginx con certificado self-signed:
-
-```
-https://204.168.163.167
+```env
+OPENCLAW_CONFIG_DIR=/root/.openclaw
+OPENCLAW_WORKSPACE_DIR=/root/.openclaw/workspace
+OPENCLAW_GATEWAY_PORT=18789
+ANTHROPIC_API_KEY=YOUR_ANTHROPIC_API_KEY
+TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
+OPENCLAW_GATEWAY_TOKEN=YOUR_TOKEN
 ```
 
-Al entrar por primera vez el navegador mostrará un aviso de certificado no confiable — aceptar la excepción una vez.
-
-### Token de autenticación
-
-```
-f96ca4384aa65d6e46c7a5c51bcbd05e2133730d2c72e0a64fa82ea5456133ee
-```
-
-También disponible en el servidor:
-
-```bash
-grep OPENCLAW_GATEWAY_TOKEN /opt/moltbot/.env
-```
-
-### Emparejamiento de dispositivo
-
-OpenClaw requiere emparejar cada navegador nuevo. Desde el servidor:
-
-```bash
-cd /opt/moltbot
-docker compose run --rm -T openclaw-cli devices list
-docker compose run --rm -T openclaw-cli devices approve <request-id>
-```
-
----
-
-## Infraestructura Docker
-
-| Contenedor | Puerto | Descripción |
-|---|---|---|
-| `moltbot-openclaw-gateway-1` | 18789, 18790 | Gateway principal de OpenClaw |
-| `openclaw-https` | 80, 443 | nginx reverse proxy con SSL |
-
-El certificado self-signed está en `/opt/openclaw-ssl/` y es válido 1 año.
-
----
-
-## Canal de Telegram
-
-Bot configurado en modo polling.
-
-| Campo | Valor |
-|---|---|
-| Token | En `/opt/moltbot/.env` como `TELEGRAM_BOT_TOKEN` |
-| dmPolicy | `pairing` |
-| allowFrom | `1653734374` |
-| groupPolicy | `open` |
-
----
-
-## Modelo de IA
-
-| Campo | Valor |
-|---|---|
-| Proveedor | Anthropic |
-| API Key | En `/opt/moltbot/.env` como `ANTHROPIC_API_KEY` |
-| Modelo primario | `claude-haiku-4-5-20251001` |
-| Modelo fallback | `claude-sonnet-4-20250514` |
-
----
-
-## Routing automático de modelos
-
-El archivo `hooks/model-router.mjs` implementa selección automática de modelo según la complejidad de cada mensaje.
-
-### Cómo funciona
-
-El hook se ejecuta antes de cada turno del agente (`before_agent_start`) y analiza el mensaje del usuario:
-
-| Condición | Modelo elegido |
-|---|---|
-| Mensaje ≤ 280 caracteres sin palabras clave | **Haiku 4.5** — rápido y económico |
-| Mensaje > 280 caracteres | **Sonnet 4.6** |
-| Código: `code`, `debug`, `function`, `class`, `sql`, `api`... | **Sonnet 4.6** |
-| Arquitectura: `architect`, `design`, `system`, `framework`... | **Sonnet 4.6** |
-| Planificación: `plan`, `strategy`, `roadmap`, `workflow`... | **Sonnet 4.6** |
-| Análisis: `analyze`, `compare`, `evaluate`, `diagnose`... | **Sonnet 4.6** |
-| Error de rate limit o context overflow en Haiku | **Sonnet 4.6** (fallback automático) |
-
-### Despliegue del hook
-
-El archivo debe estar en el workspace del agente:
-
-```
-/root/.openclaw/workspace/hooks/model-router.mjs
-```
-
-Configuración en `openclaw.json`:
+### Config principal (`/root/.openclaw/openclaw.json`)
 
 ```json
 {
+  "meta": {
+    "lastTouchedVersion": "2026.3.14",
+    "lastTouchedAt": "2026-03-19T12:00:00.000Z"
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-haiku-4-5-20251001",
+        "fallbacks": [
+          "anthropic/claude-sonnet-4-20250514"
+        ]
+      },
+      "models": {
+        "anthropic/claude-sonnet-4-20250514": {}
+      },
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "humanDelay": {
+        "mode": "custom",
+        "minMs": 1500,
+        "maxMs": 4000
+      },
+      "maxConcurrent": 1,
+      "subagents": {
+        "maxConcurrent": 1
+      }
+    }
+  },
+  "tools": {},
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
   "hooks": {
     "internal": {
       "enabled": true,
@@ -146,46 +120,189 @@ Configuración en `openclaw.json`:
         }
       ]
     }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "dmPolicy": "pairing",
+      "allowFrom": [
+        1653734374
+      ],
+      "groupPolicy": "open",
+      "streaming": "partial"
+    }
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "lan",
+    "controlUi": {
+      "allowedOrigins": [
+        "http://localhost:18789",
+        "http://127.0.0.1:18789",
+        "http://204.168.163.167:18789",
+        "https://204.168.163.167"
+      ]
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
   }
 }
 ```
 
-Para actualizar el hook en el servidor:
+## Routing automático de modelos (`hooks/model-router.mjs`)
 
+OpenClaw selecciona el modelo según la complejidad de la tarea:
+
+| Tarea | Modelo | Cuándo |
+|-------|--------|--------|
+| Conversación, preguntas, saludos | **Haiku 4.5** (default) | Mensajes < 400 chars sin patrones complejos |
+| Código, análisis, planificación | **Sonnet 4** | Patrones técnicos o mensajes largos |
+
+**Patrones que activan Sonnet:** `code`, `debug`, `function`, `class`, `script`, `implement`, `algorithm`, `api`, `database`, `sql`, `architect`, `design`, `plan`, `strategy`, `roadmap`, `analyze`, `diagnose`, `specification`, `formula`, `statistics`...
+
+**Override a Haiku:** `hola`, `gracias`, `ok`, `resume`, `traduce`, `rapido`, `breve`...
+
+Ver código completo en `hooks/model-router.mjs`.
+
+## Estabilidad
+
+### Swap (2 GB)
+El servidor no tenía swap. Se añadió para prevenir OOM kills:
 ```bash
-scp hooks/model-router.mjs root@204.168.163.167:/root/.openclaw/workspace/hooks/
-cd /opt/moltbot && docker compose restart openclaw-gateway
+fallocate -l 2G /swapfile && chmod 600 /swapfile
+mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+sysctl vm.swappiness=10
 ```
 
----
+### Docker restart policies
+Todos los contenedores tienen `restart: unless-stopped` — se reinician solos tras reboot o crash.
 
-## Configuración de rate limiting
+### Watchdog (`server/watchdog.sh`)
+Ejecutado cada 5 minutos por cron:
+- Verifica que `moltbot-openclaw-gateway-1` y `openclaw-https` estén `running`
+- Verifica que el gateway responda en `/healthz`
+- Reinicia automáticamente si algo falla
+- Envía alerta por Telegram si hay problemas
+- Log en `/var/log/openclaw-watchdog.log`
 
-Para evitar superar los límites de la API de Anthropic:
+## Seguridad
 
-| Parámetro | Valor |
-|---|---|
-| `agents.defaults.maxConcurrent` | `1` |
-| `agents.defaults.subagents.maxConcurrent` | `1` |
-| `agents.defaults.humanDelay` | `3000–8000 ms` |
+### UFW Firewall
+| Puerto | Acceso |
+|--------|--------|
+| 22/tcp | Abierto (SSH) |
+| 80/tcp | Abierto (redirect a HTTPS) |
+| 443/tcp | Abierto (HTTPS) |
+| 5678/tcp | Abierto (n8n) |
+| 18789/tcp | **Solo red Docker** (nginx proxy interno) |
 
----
+### fail2ban
+Activo para SSH — bloquea IPs con demasiados intentos de login fallidos.
+
+### nginx hardening (`config/nginx.conf`)
+- TLS 1.2 + 1.3 únicamente
+- Security headers: `X-Frame-Options`, `X-Content-Type-Options`, `HSTS`, `X-XSS-Protection`
+- Rate limiting: 10 req/min por IP en endpoints HTTP
+- Gzip compresión habilitada
+- `server_tokens off` (oculta versión de nginx)
+
+## Backups automáticos (`server/backup.sh`)
+
+Ejecutado **cada noche a las 02:00** via cron.
+
+Guarda en este repositorio (rama `main`):
+- `config/openclaw.json` — configuración principal (API key redactada)
+- `config/nginx.conf` — configuración nginx
+- `config/model-router.mjs` — hook de routing de modelos
+- `config/docker-compose.yml` — servicios Docker
+- `config/.env.template` — plantilla de variables de entorno
+- `server/watchdog.sh` — script de monitorización
+- `server/backup.sh` — este script
+
+Envía confirmación/error por Telegram al completar.
+
+## Cron jobs
+
+```
+# MaiA / OpenClaw - tareas automaticas
+*/5 * * * * /opt/moltbot/watchdog.sh
+0 2 * * * /opt/moltbot/backup.sh
+0 3 * * 0 cd /opt/moltbot && docker compose pull openclaw-gateway && docker compose up -d
+
+```
+
+## Telegram
+
+- **Bot:** `@Pratnerbot`
+- **Plugin:** `telegram` habilitado en OpenClaw
+- **dmPolicy:** `pairing` — solo usuarios aprobados
+- **allowFrom:** `[1653734374]`
+- **Token:** configurado via `TELEGRAM_BOT_TOKEN` en `.env`
+
+## API Anthropic
+
+- **Modelo primario:** `claude-haiku-4-5-20251001`
+- **Modelo fallback:** `claude-sonnet-4-20250514`
+- **Selección automática:** vía hook `model-router.mjs`
+- **Rate limits:** `maxConcurrent: 1`, `subagents.maxConcurrent: 1`
+- **humanDelay:** 1.5–4 segundos (anti-rate-limit)
+- **API key:** en `ANTHROPIC_API_KEY` (.env) y `auth-profiles.json`
+
+> **Nota:** Claude Pro (claude.ai) y la API de Anthropic son productos independientes.
+> OpenClaw requiere una API key de [console.anthropic.com](https://console.anthropic.com).
+> Para aumentar límites, añade créditos en Billing → sube de tier automáticamente.
 
 ## Comandos útiles en el servidor
 
 ```bash
-# Ver logs del gateway en tiempo real
-cd /opt/moltbot && docker compose logs -f openclaw-gateway
+# Estado de contenedores
+docker ps
 
-# Reiniciar gateway
+# Logs en tiempo real
+docker logs -f moltbot-openclaw-gateway-1
+
+# Reiniciar OpenClaw
 cd /opt/moltbot && docker compose restart openclaw-gateway
 
-# Estado de canales
-cd /opt/moltbot && docker compose run --rm -T openclaw-cli channels status
+# Ejecutar watchdog manualmente
+/opt/moltbot/watchdog.sh
 
-# Ver/editar configuración
-cd /opt/moltbot && docker compose run --rm -T openclaw-cli config file
+# Ejecutar backup manualmente
+/opt/moltbot/backup.sh
 
-# Listar dispositivos emparejados
-cd /opt/moltbot && docker compose run --rm -T openclaw-cli devices list
+# Ver logs del watchdog
+tail -f /var/log/openclaw-watchdog.log
+
+# Ver logs del backup
+tail -f /var/log/openclaw-backup.log
+
+# CLI de OpenClaw
+cd /opt/moltbot && docker compose run --rm openclaw-cli
 ```
+
+## Claude Code (CLI local)
+
+Para usar Claude Code con tu cuenta Pro de claude.ai en lugar de API key:
+
+```bash
+# 1. Eliminar la API key del entorno
+unset ANTHROPIC_API_KEY
+
+# 2. Cerrar sesión actual
+# Dentro de Claude Code: /logout
+
+# 3. Volver a abrir Claude Code — abrirá el navegador para OAuth
+claude
+
+# 4. Verificar autenticación
+# Dentro de Claude Code: /status
+```
+
+---
+*Documentación generada automáticamente. Última actualización: 2026-03-19*
