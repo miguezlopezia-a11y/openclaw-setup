@@ -1,0 +1,79 @@
+# SearXNG settings for MaiA
+use_default_settings: true
+
+server:
+  secret_key: "CHANGE_ME_RANDOM_32_HEX"
+  limiter: false
+  image_proxy: false
+  base_url: false
+  port: 8080
+  bind_address: "0.0.0.0"
+
+ui:
+  static_use_hash: true
+  infinite_scroll: false
+  default_locale: "es"
+  theme_args:
+    simple_style: "dark"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "es-ES"
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 120
+  formats:
+    - html
+    - json
+
+engines:
+  - name: google
+    engine: google
+    shortcut: g
+    weight: 2.0
+
+  - name: bing
+    engine: bing
+    shortcut: b
+    weight: 1.0
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: d
+    weight: 1.5
+
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: w
+    weight: 1.0
+    categories: general
+
+  - name: github
+    engine: github
+    shortcut: gh
+    weight: 1.0
+
+  - name: stackoverflow
+    engine: stackoverflow
+    shortcut: so
+    weight: 1.5
+    categories: it
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: arxiv
+    weight: 1.0
+    categories: science
+
+  - name: google news
+    engine: google_news
+    shortcut: gn
+    weight: 1.5
+    categories: news
+
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 30.0
+  useragent_suffix: ""
+  pool_connections: 100
+  pool_maxsize: 20
