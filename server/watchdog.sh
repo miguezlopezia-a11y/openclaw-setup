@@ -43,5 +43,14 @@ if ! curl -sf --max-time 5 http://localhost:18789/healthz > /dev/null 2>&1; then
     ERRORS=$((ERRORS+1))
 fi
 
+check_container "moltbot-searxng" || ERRORS=$((ERRORS+1))
+
+# Verificar que SearXNG responde
+if ! curl -sf --max-time 5 http://localhost:8080/healthz > /dev/null 2>&1; then
+    echo "[$STAMP] ALERTA: searxng no responde" >> "$LOG"
+    send_alert "MaiA: SearXNG caido. Reiniciando..."
+    docker start moltbot-searxng 2>/dev/null
+    ERRORS=$((ERRORS+1))
+fi
 [ $ERRORS -eq 0 ] && echo "[$STAMP] OK" >> "$LOG"
 [ $(stat -c%s "$LOG" 2>/dev/null || echo 0) -gt 5242880 ] && mv "$LOG" "${LOG}.bak"
