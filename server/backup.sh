@@ -1,11 +1,13 @@
 #!/bin/bash
-# NOTA: Reemplaza ${GH_TOKEN} con tu GitHub Personal Access Token
-# o usa: export GH_TOKEN=ghp_xxxx antes de ejecutar
 # backup.sh - Backup nocturno de configuracion a GitHub
+# Tokens y configuracion en /etc/maia-backup.conf (no incluido en git)
+
+CONF=/etc/maia-backup.conf
+if [ ! -f "$CONF" ]; then echo "[$STAMP] ERROR: $CONF no encontrado" >> "$LOG"; exit 1; fi
+source $CONF
+
 BACKUP_DIR="/opt/openclaw-backup"
-REPO="https://${GH_TOKEN}@github.com/miguezlopezia-a11y/openclaw-setup.git"
-TG_TOKEN="8764001365:AAH0OgAax-8gjzcUXO4RrLLo-dXMM5lg4vo"
-TG_CHAT="1653734374"
+REPO="https://${GH_TOKEN}@github.com/${GH_REPO}.git"
 STAMP=$(date '+%Y-%m-%d %H:%M:%S')
 LOG="/var/log/openclaw-backup.log"
 
@@ -13,18 +15,17 @@ send_msg() {
     curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
         --data-urlencode "chat_id=${TG_CHAT}" \
         --data-urlencode "text=$1" \
-        --data-urlencode "parse_mode=HTML" -m 10 > /dev/null 2>&1
+        -m 10 > /dev/null 2>&1
 }
 
 echo "[$STAMP] Iniciando backup..." >> "$LOG"
 
-if [ ! -d "$BACKUP_DIR/.git" ]; then
-    git clone "$REPO" "$BACKUP_DIR" >> "$LOG" 2>&1 || { send_msg "Backup fallido: no se pudo clonar"; exit 1; }
-fi
+[ ! -d "$BACKUP_DIR/.git" ] && git clone "$REPO" "$BACKUP_DIR" >> "$LOG" 2>&1
 
 cd "$BACKUP_DIR"
 git config user.email "backup@maia.auto"
 git config user.name "MaiA Backup"
+git remote set-url origin "$REPO"
 git fetch origin >> "$LOG" 2>&1
 git reset --hard origin/main >> "$LOG" 2>&1 || git reset --hard origin/master >> "$LOG" 2>&1
 
@@ -34,8 +35,12 @@ sed -i "s/\"apiKey\": \"sk-ant-[^\"]*\"/\"apiKey\": \"REDACTED\"/g" config/openc
 cp /opt/openclaw-ssl/nginx.conf config/nginx.conf
 cp /root/.openclaw/workspace/hooks/model-router.mjs config/model-router.mjs
 cp /opt/moltbot/docker-compose.yml config/docker-compose.yml
+
+# backup.sh sin tokens para el repo
+sed 's|GH_TOKEN="${GH_TOKEN_PLACEHOLDER}"
 cp /opt/moltbot/watchdog.sh server/watchdog.sh
-cp /opt/moltbot/backup.sh server/backup.sh
+
+# .env template sin secrets
 sed -e 's|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=YOUR_KEY_HERE|'
     -e 's|TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=YOUR_TOKEN_HERE|'
     -e 's|OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=YOUR_TOKEN_HERE|'
