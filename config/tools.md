@@ -46,3 +46,16 @@ Add whatever helps you do your job. This is your cheat sheet.
 - Categorías: `general` (web), `news` (noticias), `it` (código/tech), `science` (papers)
 - Sin historial, sin tracking, privado
 - Ejemplo: `curl -sf "http://searxng:8080/search?q=tu+busqueda&format=json"`
+
+## Google Drive
+
+- **Herramienta:** `node /home/node/.openclaw/gdrive/gdrive.mjs`
+- **Credenciales:** `/home/node/.openclaw/gdrive/credentials.json` (Service Account JSON)
+- **Comandos:** `list [folderId]`, `read <fileId>`, `search <query>`, `info <fileId>`, `setup`
+- **Uso principal:** Leer documentos de NotebookLM y Google Docs compartidos
+- El Service Account email debe aparecer en "Compartir" de cada archivo/carpeta
+
+### gog (Google Workspace CLI completo)
+- **Binario:** `/home/node/.openclaw/bin/gog`
+- **Setup:** requiere `gog auth credentials /path/client_secret.json` (OAuth)
+- **Servicios:** Gmail, Calendar, Drive, Contacts, Sheets, Docs
