@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.14",
-    "lastTouchedAt": "2026-03-19T12:00:00.000Z"
+    "lastTouchedAt": "2026-03-20T21:00:00.000Z"
   },
   "agents": {
     "defaults": {
@@ -25,6 +25,10 @@
       "maxConcurrent": 1,
       "subagents": {
         "maxConcurrent": 1
+      },
+      "imageModel": {
+        "primary": "anthropic/claude-sonnet-4-20250514",
+        "fallbacks": []
       }
     }
   },
@@ -42,6 +46,10 @@
         {
           "event": "before_agent_start",
           "module": "hooks/model-router.mjs"
+        },
+        {
+          "event": "before_agent_start",
+          "module": "hooks/time-context.mjs"
         }
       ]
     }

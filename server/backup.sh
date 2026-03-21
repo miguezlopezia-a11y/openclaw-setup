@@ -41,10 +41,7 @@ sed 's|GH_TOKEN="${GH_TOKEN_PLACEHOLDER}"
 cp /opt/moltbot/watchdog.sh server/watchdog.sh
 
 # .env template sin secrets
-sed -e 's|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=YOUR_KEY_HERE|'
-    -e 's|TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=YOUR_TOKEN_HERE|'
-    -e 's|OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=YOUR_TOKEN_HERE|'
-    /opt/moltbot/.env > config/.env.template
+sed -e 's|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=YOUR_KEY_HERE|' -e 's|TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=YOUR_TOKEN_HERE|' -e 's|OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=YOUR_TOKEN_HERE|' /opt/moltbot/.env > config/.env.template 2>/dev/null || true
 
 git add -A
 git diff --staged --quiet && { echo "[$STAMP] Sin cambios" >> "$LOG"; exit 0; }
