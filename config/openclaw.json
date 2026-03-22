@@ -83,5 +83,13 @@
         "enabled": true
       }
     }
+  },
+  "skills": {
+    "load": {
+      "extraDirs": [
+        "/home/node/.openclaw/workspace/skills"
+      ],
+      "watch": true
+    }
   }
 }
