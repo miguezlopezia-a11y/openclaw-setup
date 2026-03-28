@@ -1,22 +1,32 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.14",
-    "lastTouchedAt": "2026-03-20T21:00:00.000Z"
+    "lastTouchedAt": "2026-03-27T10:00:34.766Z"
   },
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-haiku-4-5-20251001",
+        "primary": "anthropic/claude-sonnet-4-6",
         "fallbacks": [
           "anthropic/claude-sonnet-4-20250514"
         ]
       },
+      "imageModel": {
+        "primary": "anthropic/claude-sonnet-4-20250514",
+        "fallbacks": []
+      },
       "models": {
-        "anthropic/claude-sonnet-4-20250514": {}
+        "anthropic/claude-sonnet-4-20250514": {},
+        "anthropic/claude-sonnet-4-6": {}
+      },
+      "contextPruning": {
+        "mode": "cache-ttl",
+        "keepLastAssistants": 20
       },
       "compaction": {
         "mode": "safeguard"
       },
+      "thinkingDefault": "low",
       "humanDelay": {
         "mode": "custom",
         "minMs": 1500,
@@ -25,21 +35,73 @@
       "maxConcurrent": 1,
       "subagents": {
         "maxConcurrent": 1
-      },
-      "imageModel": {
-        "primary": "anthropic/claude-sonnet-4-20250514",
-        "fallbacks": []
       }
     }
   },
-  "tools": {},
+  "tools": {
+    "profile": "full",
+    "allow": [
+      "exec",
+      "read",
+      "write",
+      "search",
+      "web_fetch",
+      "message",
+      "tts",
+      "searxng",
+      "instagram-analyzer",
+      "youtube-analytics",
+      "gdrive",
+      "google-calendar",
+      "competitor-analysis"
+    ],
+    "media": {
+      "audio": {
+        "enabled": true,
+        "language": "es",
+        "echoTranscript": true,
+        "echoFormat": "🎙️ \"{transcript}\"",
+        "timeoutSeconds": 120,
+        "models": [
+          {
+            "type": "cli",
+            "command": "whisper",
+            "args": [
+              "{MediaPath}",
+              "--model",
+              "medium",
+              "--language",
+              "es",
+              "--output_format",
+              "txt",
+              "--output_dir",
+              "{OutputDir}"
+            ],
+            "timeoutSeconds": 120
+          }
+        ]
+      }
+    }
+  },
   "commands": {
     "native": "auto",
     "nativeSkills": "auto",
     "restart": true,
     "ownerDisplay": "raw"
   },
+  "session": {
+    "idleMinutes": 10080
+  },
   "hooks": {
+    "enabled": true,
+    "token": "maia-runner-hook-2026",
+    "path": "/hooks",
+    "mappings": [
+      {
+        "action": "agent",
+        "deliver": true
+      }
+    ],
     "internal": {
       "enabled": true,
       "handlers": [
@@ -77,19 +139,19 @@
       ]
     }
   },
-  "plugins": {
-    "entries": {
-      "telegram": {
-        "enabled": true
-      }
-    }
-  },
   "skills": {
     "load": {
       "extraDirs": [
         "/home/node/.openclaw/workspace/skills"
       ],
       "watch": true
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
     }
   }
 }

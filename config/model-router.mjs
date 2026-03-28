@@ -1,62 +1,25 @@
-// OpenClaw Model Router v2 — optimizado para máximo ahorro
-// Haiku  : conversaciones, preguntas, tareas simples (default)
-// Sonnet : código, razonamiento complejo, planificación, análisis largo
+// OpenClaw Model Router v3
+// Default: claude-sonnet-4-6 (set in openclaw.json)
+// Haiku: solo para mensajes cortos y claramente triviales
 
-const SONNET = 'anthropic/claude-sonnet-4-20250514';
+const HAIKU = 'anthropic/claude-haiku-4-5-20251001';
 
-// Solo usar Sonnet cuando sea claramente necesario
-const SONNET_PATTERNS = [
-  // Código y programación
-  /\b(cod[eio]|debug|function|class|script|program|implement|algorithm|refactor|endpoint|database|sql|query|regex|test|unittest|bug|error|exception)\b/i,
-  // Arquitectura
-  /\b(architect|design|system|infrastructure|module|framework|component|api|microservice)\b/i,
-  // Planificación compleja
-  /\b(plan|strateg|roadmap|workflow|pipeline|step.by.step|paso.*paso|hoja.*ruta)\b/i,
-  // Análisis profundo (solo si hay contexto largo)
-  /\b(analiz[ae]|diagnos|investigat|compar.*detall|evalua.*detall)\b/i,
-  // Documentación técnica larga
-  /\b(documentation|specification|readme|tutorial|manual)\b/i,
-  // Matemáticas avanzadas
-  /\b(equation|formula|statistic|calcul.*complex|math.*proof)\b/i,
+const SIMPLE_PATTERNS = [
+  /^(hola|hello|hi|ok|sí|no|gracias|thanks|buenas|bye|chao|adios)[\s!.]*$/i,
+  /^(qué hora es|qué día es|cómo estás|qué tal)[\s?]*$/i,
 ];
 
-// Palabras que indican tarea simple (fuerzan Haiku aunque el mensaje sea largo)
-const SIMPLE_OVERRIDES = [
-  /\b(hola|hello|hi|gracias|thanks|ok|sí|no|bien|mal|qué hora|fecha|tiempo|cuánto|cómo estás|qué tal)\b/i,
-  /\b(resumen|resume|resume|summary|brief|breve|corto|quick|rápido|fast)\b/i,
-  /\b(traduc|translate|traducción)\b/i,
-];
-
-// Umbral: mensajes >400 chars SON complejos (era 280, subimos para ahorrar)
-const LONG_MSG_CHARS = 400;
+const TRIVIAL_MAX_CHARS = 60;
 
 export default async function modelRouter(event) {
-  const prompt = event.prompt ?? '';
+  const prompt = (event.prompt ?? '').trim();
 
-  const history = Array.isArray(event.messages)
-    ? event.messages
-        .filter(m => m && m.role === 'user')
-        .slice(-2)  // Solo últimos 2 mensajes (era 3, reducimos contexto analizado)
-        .map(m => {
-          if (typeof m.content === 'string') return m.content;
-          if (Array.isArray(m.content))
-            return m.content.filter(c => c && c.type === 'text').map(c => c.text || '').join(' ');
-          return '';
-        })
-        .join(' ')
-    : '';
-
-  const text = (prompt + ' ' + history).trim();
-
-  // Siempre Haiku para saludos/tareas simples
-  if (SIMPLE_OVERRIDES.some(p => p.test(text))) {
-    return; // Haiku (sin override)
+  // Only downgrade to Haiku for very short, trivially simple messages
+  if (
+    prompt.length <= TRIVIAL_MAX_CHARS &&
+    SIMPLE_PATTERNS.some(p => p.test(prompt))
+  ) {
+    return { modelOverride: HAIKU };
   }
-
-  const isComplex = text.length > LONG_MSG_CHARS || SONNET_PATTERNS.some(p => p.test(text));
-
-  if (isComplex) {
-    return { modelOverride: SONNET };
-  }
-  // Default: Haiku
+  // Everything else: Sonnet 4.6 (default in openclaw.json)
 }
