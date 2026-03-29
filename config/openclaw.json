@@ -6,9 +6,10 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-sonnet-4-6",
+        "primary": "google/gemini-2.5-flash",
         "fallbacks": [
-          "anthropic/claude-sonnet-4-20250514"
+          "google/gemini-2.5-flash",
+          "anthropic/claude-sonnet-4-6"
         ]
       },
       "imageModel": {
@@ -17,7 +18,8 @@
       },
       "models": {
         "anthropic/claude-sonnet-4-20250514": {},
-        "anthropic/claude-sonnet-4-6": {}
+        "anthropic/claude-sonnet-4-6": {},
+        "google/gemini-2.5-flash": {}
       },
       "contextPruning": {
         "mode": "cache-ttl",
