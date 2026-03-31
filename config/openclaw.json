@@ -7,10 +7,7 @@
     "defaults": {
       "model": {
         "primary": "google/gemini-2.5-flash",
-        "fallbacks": [
-          "google/gemini-2.5-flash",
-          "anthropic/claude-sonnet-4-6"
-        ]
+        "fallbacks": []
       },
       "imageModel": {
         "primary": "anthropic/claude-sonnet-4-20250514",
