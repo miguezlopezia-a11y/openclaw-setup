@@ -31,7 +31,7 @@
         "minMs": 1500,
         "maxMs": 4000
       },
-      "maxConcurrent": 1,
+      "maxConcurrent": 2,
       "subagents": {
         "maxConcurrent": 1
       }
