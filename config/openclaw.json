@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.14",
-    "lastTouchedAt": "2026-03-27T10:00:34.766Z"
+    "lastTouchedAt": "2026-04-07T16:21:29.823Z"
   },
   "agents": {
     "defaults": {
@@ -14,8 +14,16 @@
         "fallbacks": []
       },
       "models": {
-        "anthropic/claude-sonnet-4-20250514": {},
-        "anthropic/claude-sonnet-4-6": {},
+        "anthropic/claude-sonnet-4-20250514": {
+          "params": {
+            "cacheRetention": "short"
+          }
+        },
+        "anthropic/claude-sonnet-4-6": {
+          "params": {
+            "cacheRetention": "short"
+          }
+        },
         "google/gemini-2.5-flash": {}
       },
       "contextPruning": {
@@ -30,6 +38,9 @@
         "mode": "custom",
         "minMs": 1500,
         "maxMs": 4000
+      },
+      "heartbeat": {
+        "every": "30m"
       },
       "maxConcurrent": 2,
       "subagents": {
@@ -52,15 +63,16 @@
       "youtube-analytics",
       "gdrive",
       "google-calendar",
-      "competitor-analysis"
+      "competitor-analysis",
+      "memory_recall",
+      "memory_store",
+      "memory_forget"
     ],
     "media": {
       "audio": {
         "enabled": true,
-        "language": "es",
-        "echoTranscript": true,
-        "echoFormat": "🎙️ \"{transcript}\"",
         "timeoutSeconds": 120,
+        "language": "es",
         "models": [
           {
             "type": "cli",
@@ -78,7 +90,9 @@
             ],
             "timeoutSeconds": 120
           }
-        ]
+        ],
+        "echoTranscript": true,
+        "echoFormat": "\ud83c\udf99\ufe0f \"{transcript}\""
       }
     }
   },
@@ -93,8 +107,8 @@
   },
   "hooks": {
     "enabled": true,
-    "token": "maia-runner-hook-2026",
     "path": "/hooks",
+    "token": "maia-runner-hook-2026",
     "mappings": [
       {
         "action": "agent",
@@ -150,7 +164,35 @@
     "entries": {
       "telegram": {
         "enabled": true
+      },
+      "acpx": {
+        "enabled": true,
+        "config": {
+          "command": "/app/extensions/acpx/node_modules/.bin/acpx",
+          "permissionMode": "approve-all",
+          "nonInteractivePermissions": "deny"
+        }
+      },
+      "memory-core": {
+        "enabled": false
+      },
+      "memory-lancedb": {
+        "enabled": true,
+        "config": {
+          "embedding": {
+            "apiKey": "AIzaSyAUyqJQg8fHZ9GYK1OpddQJW3SJF2D2v3M",
+            "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "model": "gemini-embedding-001",
+            "dimensions": 3072
+          },
+          "dbPath": "/home/node/.openclaw/workspace/memory-lancedb",
+          "autoCapture": true,
+          "autoRecall": true
+        }
       }
+    },
+    "slots": {
+      "memory": "memory-lancedb"
     }
   }
 }
